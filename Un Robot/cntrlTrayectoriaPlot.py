@@ -18,22 +18,22 @@ from robomaster import robot, config
 
 # ───────────── Parámetros generales ─────────────
 LAPTOP_IP = "192.168.2.11"   # IP de tu laptop
-ROBOT_IP  = "192.168.2.19"   # IP del S1
-SUBJECT   = "ROBO_sebas"     # Nombre en Vicon
+ROBOT_IP  = "192.168.2.14"   # IP del S1
+SUBJECT   = "ROBO_manolo"     # Nombre en Vicon
 
 # Punto meta global (m)
 X_DES, Y_DES = -1.0, -1.0
 META = np.array([X_DES, Y_DES])
 
 # Ganancias y límites
-K_TRACK = 4.0      # posición
-K_YAW   = 13.0      # orientación
+K_TRACK = 3.0      # posición
+K_YAW   = 5.0      # orientación
 V_MAX   = 0.5      # m/s máx
 DT      = 0.1     # 20 Hz control
 
 # Trayectoria circular
 R_TRAJ  = 1.0      # m   radio
-OMEGA   = 0.4      # rad/s  (≈15.7 s por vuelta)
+OMEGA   = 0.2      # rad/s  (≈15.7 s por vuelta)
 START_T = time.time()
 
 # ───────────── Trayectoria Circular ─────────────
@@ -92,22 +92,31 @@ def control_loop_tray():
         err = pos - xd
         
         # Ley de control en global
-        u = -K_TRACK * err + vd            # feed‑forward + P
+        u = -K_TRACK * err + vd*0.1            # feed‑forward + P
         n = np.linalg.norm(u)
-        if n > V_MAX:
-            u = u / n * V_MAX
+        if u [0]> V_MAX:
+            u[0] =  V_MAX
+        if u [1]> V_MAX:
+            u[1] =  V_MAX
+            
+            
+        if u [0]< -V_MAX:
+            u[0] =  -V_MAX
+        if u [1]< -V_MAX:
+            u[1] =  -V_MAX
             
         # ── orientación ──
         yaw = cli.GetSegmentGlobalRotationEulerXYZ(SUBJECT, SUBJECT)[0][2]   # rad
-        th_des = np.arctan2(vd[1], vd[0])   
+        th_des = np.arctan2(vd[1], vd[0]) + np.pi
         # velocidad angular deseada (th_des_dot)
         num   = ad[0] * vd[1] - vd[0] * ad[1]        # (ax * vy  - vx * ay)
-        den   = vd[0]**2 + vd[1]**2 + 1e-6           # evita /0
+        den   = vd[0]**2 + vd[1]**2            # evita /0
         th_des_dot = num / den                       # rad/s
         
         # control P en yaw con feed‑forward
         e_th = ((yaw - th_des + np.pi) % (2*np.pi)) - np.pi
-        w_cmd = th_des_dot - K_YAW * e_th            # rad/s
+        #e_th = ((yaw - th_des))
+        w_cmd = 0.1*th_des_dot - K_YAW * e_th            # rad/s
         
         # ── transforma a cuerpo ──
         R = np.array([[ np.cos(yaw),  np.sin(yaw)],

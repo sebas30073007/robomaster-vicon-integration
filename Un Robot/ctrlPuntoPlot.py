@@ -18,11 +18,11 @@ from robomaster import robot, config
 
 # ───────────── Parámetros generales ─────────────
 LAPTOP_IP = "192.168.2.11"   # IP de tu laptop
-ROBOT_IP  = "192.168.2.19"   # IP del S1
-SUBJECT   = "ROBO_sebas"     # Nombre en Vicon
+ROBOT_IP  = "192.168.2.14"   # IP del S1
+SUBJECT   = "ROBO_manolo"     # Nombre en Vicon
 
 # Punto meta global (m)
-X_DES, Y_DES = -1.0, -1.0
+X_DES, Y_DES = 0.5, -0.5
 META = np.array([X_DES, Y_DES])
 
 # Ganancias y límites
@@ -61,43 +61,9 @@ except Exception as err:
     print(f"❌ Error conectando al RoboMaster: {err}")
     sys.exit(1)
 
-# ───────────── Loop de control ─────────────
-STOP_FLAG = False
-
-def control_loop():
-    global STOP_FLAG
-    W_inv = (1/r_wheel) * np.array([[ 1, 1, -(L+l_)],
-                                    [ 1, -1,  (L+l_)],
-                                    [ 1, 1, (L+l_)],
-                                    [ 1, -1,  -(L+l_)]])
-    while not STOP_FLAG:
-        cli.UpdateFrame()
-        # Pose actual
-        px, py, _ = cli.GetSegmentGlobalTranslation(SUBJECT, SUBJECT)[0]
-        pos = np.array([px, py]) / 1000.0
-        err = META - pos
-        u_bar = K_P * err
-        # Saturación lineal
-        norm = np.linalg.norm(u_bar)
-        if norm > V_MAX:
-            u_bar = (u_bar / norm) * V_MAX
-        # Orientación (rad)
-        yaw = cli.GetSegmentGlobalRotationEulerXYZ(SUBJECT, SUBJECT)[0][2]
-        R_gl2body = np.array([[ np.cos(yaw),  np.sin(yaw)],
-                              [-np.sin(yaw),  np.cos(yaw)]])
-        v_body = R_gl2body @ u_bar
-        xi_body = np.array([v_body[0], v_body[1], 0.0])  # Wz=0
-        wheel_rads = W_inv @ xi_body
-        # Normaliza a %PWM
-        pwm = (wheel_rads / 30.0) * 100.0
-        pwm = np.clip(pwm, -100, 100)
-        lf, lb, rf, rb = pwm
-        chs.drive_wheels(lf, lb, rf, rb, timeout=LOOP_DT*0.6)
-        time.sleep(LOOP_DT)
-    chs.drive_wheels(0,0,0,0,timeout=0.2)
-    robot_ep.close()
 
 # ───────────── Loop de control con drive_speed ─────────────
+STOP_FLAG = False
 def control_loop_speed():
     """
     Publica velocidades lineales (Vx_body, Vy_body) con drive_speed().

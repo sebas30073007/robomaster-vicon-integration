@@ -25,7 +25,7 @@ while True:
             time.sleep(0.05)
 
 # ── Parámetros del robot ────────────────────────────────────
-ROBOT      = "ROBO_sebas"
+ROBOT      = "ROBO_manolo"
 COLOR      = "tab:blue"
 TRAIL_LEN  = 60
 ARROW_LEN  = 0.25           # m
